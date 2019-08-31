@@ -63,6 +63,26 @@ Clone the repository
 git clone git@github.com:mapbox/mapbox-gl-js.git
 ```
 
+Make sure a stable npm version is used, if you want to use both - use nvm:
+
+```
+nvm install 10.16.0
+nvm use 10.16.0
+```
+
+Install [development tools for Windows](https://stackoverflow.com/questions/23243353/how-to-set-shell-for-npm-run-scripts-in-windows):
+
+```
+npm install --global --production windows-build-tools
+npm config set msvs_version 2015 –global
+npm config set python python2.7
+```
+
+Make sure [Windows uses bash](https://stackoverflow.com/questions/23243353/how-to-set-shell-for-npm-run-scripts-in-windows) for npm commands:
+
+```
+npm config set script-shell "C:\\Program Files\\git\\bin\\bash.exe"
+```
 
 Install node module dependencies
 ```bash

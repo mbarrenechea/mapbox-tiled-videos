@@ -23,7 +23,7 @@ import type {
     RasterDEMSourceSpecification
 } from '../style-spec/types';
 
-class RasterTileSource extends Evented implements Source {
+export class RasterTileSource extends Evented implements Source {
     type: 'raster' | 'raster-dem';
     id: string;
     minzoom: number;

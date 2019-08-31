@@ -86,6 +86,7 @@ export type SourceClass = Class<Source> & SourceStatics;
 import vector from '../source/vector_tile_source';
 import raster from '../source/raster_tile_source';
 import rasterDem from '../source/raster_dem_tile_source';
+import videoTiled from '../source/video_tile_source';
 import geojson from '../source/geojson_source';
 import video from '../source/video_source';
 import image from '../source/image_source';
@@ -97,6 +98,7 @@ const sourceTypes = {
     vector,
     raster,
     'raster-dem': rasterDem,
+    'video-tiled': videoTiled,
     geojson,
     video,
     image,

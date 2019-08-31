@@ -327,6 +327,7 @@ export const getImage = function(requestParameters: RequestParameters, callback:
 
 export const getVideo = function(urls: Array<string>, callback: Callback<HTMLVideoElement>): Cancelable {
     const video: HTMLVideoElement = window.document.createElement('video');
+    video.setAttribute('preload', 'auto')
     video.muted = true;
     video.onloadstart = function() {
         callback(null, video);

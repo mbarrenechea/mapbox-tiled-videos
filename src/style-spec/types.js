@@ -111,6 +111,18 @@ export type RasterDEMSourceSpecification = {
     "encoding"?: "terrarium" | "mapbox"
 }
 
+export type VideoTiledSourceSpecification = {
+    "type": "video-tiled",
+    "url"?: string,
+    "tiles"?: Array<string>,
+    "bounds"?: [number, number, number, number],
+    "minzoom"?: number,
+    "maxzoom"?: number,
+    "tileSize"?: number,
+    "scheme"?: "xyz" | "tms",
+    "attribution"?: string
+}
+
 export type GeoJSONSourceSpecification = {|
     "type": "geojson",
     "data"?: mixed,
@@ -142,6 +154,7 @@ export type SourceSpecification =
     | VectorSourceSpecification
     | RasterSourceSpecification
     | RasterDEMSourceSpecification
+    | VideoTiledSourceSpecification
     | GeoJSONSourceSpecification
     | VideoSourceSpecification
     | ImageSourceSpecification
