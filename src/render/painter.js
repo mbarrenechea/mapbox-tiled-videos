@@ -357,7 +357,7 @@ class Painter {
         for (const id in sourceCaches) {
             const sourceCache = sourceCaches[id];
             const source = sourceCache.getSource();
-            if (source.type !== 'raster' && source.type !== 'raster-dem') continue;
+            if (source.type !== 'raster' && source.type !== 'raster-dem' && source.type !== 'video-tiled') continue;
             const visibleTiles = [];
             for (const coord of coordsAscending[id]) visibleTiles.push(sourceCache.getTile(coord));
             updateTileMasks(visibleTiles, this.context);

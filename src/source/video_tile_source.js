@@ -20,7 +20,7 @@ import type {Source} from './source';
 import RasterTileSource from './raster_tile_source';
 
 function log(s, args) {
-    console.log(s, args)
+    // console.log(s, args)
 }
 
 /***
@@ -41,7 +41,7 @@ class VideoCollectionPlayer {
     seekingVideos: Array<HTMLVideoElement>;
     currentTimeChanged: boolean;
 
-    constructor(onRender: Function) {
+    constructor(onRender: Function, getVideos: Function) {
         this.onTimeChanged = () => {};
         this.playbackRate = 1;
         this.playing = false;
@@ -49,9 +49,11 @@ class VideoCollectionPlayer {
         this.currentTime = 0;
 
         this.onRender = onRender;
+        this.getVideos = getVideos;
 
         this.videos = [];
         this.seekingVideos = [];
+        this.seekedCount = 0
 
         this._syncVideos = throttle(this._syncVideosUnthrottled.bind(this), 100);
     }
@@ -65,7 +67,7 @@ class VideoCollectionPlayer {
 
         let player = this;
         dt = dt ? dt : 500; // 2FPS
-        step = step ? step : 0.2 
+        step = step ? step : 0.2
         
         log('dt: ', dt)
 
@@ -98,7 +100,7 @@ class VideoCollectionPlayer {
         let onCanPlayThrouthHandler = e => {
             let video = e.target
 
-            console.log('oncanplaythrough')
+            log('oncanplaythrough')
 
             video.removeEventListener('canplaythrough', video.onCanPlayThrouthHandler)
 
@@ -107,7 +109,7 @@ class VideoCollectionPlayer {
             }
 
             video.onerror = e => {
-                console.log('Video error: ', e)
+                log('Video error: ', e)
             }
 
             video.width = 512
@@ -120,12 +122,14 @@ class VideoCollectionPlayer {
             this.duration = video.duration
             log('duration: ' + video.duration)
             
-            onVideoReady(video)
+            if(onVideoReady) {
+                onVideoReady(video)
+            }
 
             if(video.currentTime != this.currentTime) {
                 this._syncVideos();
                 
-                console.log('Syncing newly added video to current time ...')
+                log('Syncing newly added video to current time ...')
             }
         }
 
@@ -133,13 +137,18 @@ class VideoCollectionPlayer {
 
         return onCanPlayThrouthHandler
     }
+
     addVideo(video: HTMLVideoElement, onVideoReady: Function) {
         video.loop = true;
         video.autoplay = false;
 
-        // use canplaythrough here to handle video load event
-        // TODO: find a better way to handle this
-        video.addEventListener('canplaythrough', this._onCanPlayThrouth(video, onVideoReady))
+        if(video.onCanPlayThrouthHandler) {
+            video.onCanPlayThrouthHandler({ target: video })
+        } else {
+            // use canplaythrough here to handle video load event
+            // TODO: find a better way to handle this
+            video.addEventListener('canplaythrough', this._onCanPlayThrouth(video, onVideoReady))
+        }
     }
 
     setCurrentTime(currentTime) { 
@@ -148,13 +157,17 @@ class VideoCollectionPlayer {
     }
 
     removeVideo(video) {
-        console.log('remove video')
+        log('remove video')
         this._unsubscribeEvents(video)
-        
+
         // remove video
         let index = this.videos.indexOf(video);
+
         if (index > -1) {
+            log('remove video at index ' + index)
             this.videos.splice(index, 1);
+        } else {
+            log('no video found')
         }
     }
 
@@ -162,13 +175,55 @@ class VideoCollectionPlayer {
         this.duration = duration;
     }
 
+    refresh() {
+        let visibleVideos = this.getVideos().slice();
+
+        // stop observing videos which are not visible anymore
+        let removeVideos = []
+        for(let v of this.videos) {
+            if(!visibleVideos.includes(v)) {
+                removeVideos.push(v)
+            }
+        }
+
+        for(let v of removeVideos) {
+            this.removeVideo(v)
+        }
+
+        // add new videos
+        for(let v of visibleVideos) {
+            if(!this.videos.includes(v)) {
+                this.addVideo(v)
+            }
+        }
+
+        this.seekingVideos = []
+        this.busy = false
+    }
+
+    needsRefresh() {
+        let o = this.getVideos().length != this.videos.length
+        if(o) {
+            this.refresh()
+        }
+        return false
+    }
+
     setCurrentTimeUnthrottled(currentTime) {
+        if(this.busy && !this.seekingVideos.length) {
+            this.busy = false
+        }
+
         if(this.busy) {
             log('Player is already syncing current time, skipping ...')
             return
         }
 
+        this.seekedCount = 0
+
         this.busy = true
+
+        this.refresh()
 
         this.currentTime = currentTime;
 
@@ -206,11 +261,14 @@ class VideoCollectionPlayer {
         video.removeEventListener('seeked', this._onVideoSeeked)
         video.removeEventListener('playing', this._onVideoPlaying)
         video.removeEventListener('timeupdate', this._onVideoTimeUpdate)
+
+        let index = this.seekingVideos.indexOf(video);
+        if (index > -1) {
+            this.seekingVideos.splice(index, 1);
+        }
     }
 
     _onVideoSeeked(e) {
-        // console.log('seeked')
-
         let video = e.target
         let player = video.player
 
@@ -226,15 +284,18 @@ class VideoCollectionPlayer {
 
                 throttle(player.onTimeChanged(player.currentTime), 300);
             }
+            else {
+                player.seekedCount += 1
+            }
         }
     }
 
     _onVideoPlaying(e) {
-        // console.log('playing')
+        // log('playing')
     }
 
     _onVideoTimeUpdate(e) {
-        // console.log('timeupdate')
+        // log('timeupdate')
     }
 }
 
@@ -261,7 +322,12 @@ class VideoTileSource extends RasterTileSource implements Source {
             this.map.triggerRepaint()
         }
 
-        this.player = new VideoCollectionPlayer(this.onRender);
+        this.getVideos = () => {
+            let tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles)
+            return tiles.filter(t => t.video).map(t => t.video)
+        }
+
+        this.player = new VideoCollectionPlayer(this.onRender, this.getVideos);
 
         extend(this, pick(options, ['tileSize', 'playbackRate']));
 
@@ -288,7 +354,7 @@ class VideoTileSource extends RasterTileSource implements Source {
                 
                 // add video to the player, add tile once (if) video is ready to play
                 this.player.addVideo(video, video => {
-                    console.log('adding video tile')
+                    log('adding video tile')
                     this.addTile(tile, video, callback)
                 });
             }
@@ -298,11 +364,11 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
     
     addTile(tile: Tile, video: HTMLVideoElement, callback: Callback<void>) {
+        tile.video = video;
+
         if (this.map._refreshExpiredTiles) {
             tile.setExpiryData(video);
         }
-
-        tile.video = video;
 
         delete (video: any).cacheControl;
         delete (video: any).expires;
@@ -339,7 +405,11 @@ class VideoTileSource extends RasterTileSource implements Source {
     unloadTile(tile: Tile, callback: Callback<void>) {
         RasterTileSource.prototype.unloadTile.call(this, tile, callback)
 
+        log('unload tile')
+
+
         if(tile.video) {
+            log('unload tile with video')
             this.player.removeVideo(tile.video)
         }
     }
@@ -351,7 +421,7 @@ class VideoTileSource extends RasterTileSource implements Source {
     }    
 
     hasTransition() {
-        return this.needsRender;
+        return this.needsRender || this.player.needsRefresh();
     }
 };
 
