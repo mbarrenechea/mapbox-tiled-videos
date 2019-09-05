@@ -55,7 +55,7 @@ class VideoCollectionPlayer {
         this.seekingVideos = [];
         this.seekedCount = 0
 
-        this._syncVideos = throttle(this._syncVideosUnthrottled.bind(this), 100);
+        this._syncVideos = throttle(this._syncVideosUnthrottled.bind(this), 150);
     }
 
     play(dt, step) {
@@ -82,7 +82,7 @@ class VideoCollectionPlayer {
                 currentTime = 0
             }
 
-            player.setCurrentTime(currentTime)
+            player.setCurrentTimeUnthrottled(currentTime)
         }, dt);
     }
 
@@ -201,14 +201,6 @@ class VideoCollectionPlayer {
         this.busy = false
     }
 
-    needsRefresh() {
-        let o = this.getVideos().length != this.videos.length
-        if(o) {
-            this.refresh()
-        }
-        return false
-    }
-
     setCurrentTimeUnthrottled(currentTime) {
         if(this.busy && !this.seekingVideos.length) {
             this.busy = false
@@ -253,14 +245,14 @@ class VideoCollectionPlayer {
 
     _subscribeEvents(video) {
         video.addEventListener('seeked', this._onVideoSeeked)
-        video.addEventListener('playing', this._onVideoPlaying)
-        video.addEventListener('timeupdate', this._onVideoTimeUpdate)
+        // video.addEventListener('playing', this._onVideoPlaying)
+        // video.addEventListener('timeupdate', this._onVideoTimeUpdate)
     }
 
     _unsubscribeEvents(video) {
         video.removeEventListener('seeked', this._onVideoSeeked)
-        video.removeEventListener('playing', this._onVideoPlaying)
-        video.removeEventListener('timeupdate', this._onVideoTimeUpdate)
+        // video.removeEventListener('playing', this._onVideoPlaying)
+        // video.removeEventListener('timeupdate', this._onVideoTimeUpdate)
 
         let index = this.seekingVideos.indexOf(video);
         if (index > -1) {
@@ -415,13 +407,10 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
 
     prepare() {
-        // if(this.needsRepaint) {
-        //     this.fire(new Event('repaint'))
-        // }
     }    
 
     hasTransition() {
-        return this.needsRender || this.player.needsRefresh();
+        return this.needsRender
     }
 };
 
