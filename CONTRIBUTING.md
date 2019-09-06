@@ -95,6 +95,22 @@ Install headless-gl dependencies https://github.com/stackgl/headless-gl#windows
 copy node_modules/headless-gl/deps/windows/dll/x64/*.dll c:\windows\system32
 ```
 
+## Pack custom development versions
+
+1. Run:
+
+```
+yarn pack
+```
+
+2. Copy created tar file to some hosted storage
+
+3. Install as:
+
+```
+npm install --save <tarball url>
+```
+
 ## Serving the Debug Page
 
 Start the debug server
