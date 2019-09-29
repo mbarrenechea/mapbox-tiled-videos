@@ -1,26 +1,20 @@
 // @flow
 
-import window from '../util/window';
-import { extend, pick } from '../util/util';
-import { getVideo, ResourceType } from '../util/ajax';
+import {extend, pick} from '../util/util';
+import {getVideo, ResourceType} from '../util/ajax';
 import Texture from '../render/texture';
-import { Event, ErrorEvent, Evented } from '../util/evented';
-import loadTileJSON from './load_tilejson';
-import { cacheEntryPossiblyAdded } from '../util/tile_request_cache';
-import { postTurnstileEvent, postMapLoadEvent } from '../util/mapbox';
+import {Evented} from '../util/evented';
+import {cacheEntryPossiblyAdded} from '../util/tile_request_cache';
 import type Dispatcher from '../util/dispatcher';
 import type Tile from './tile';
-import TileBounds from './tile_bounds';
-import type Map from '../ui/map';
 import type {Callback} from '../types/callback';
-import type {Cancelable} from '../types/cancelable';
-import type { VideoTiledSourceSpecification } from '../style-spec/types';
+import type {VideoTiledSourceSpecification} from '../style-spec/types';
 import type {Source} from './source';
 import RasterTileSource from './raster_tile_source';
 import VideoCollectionPlayer from './video_collection_player';
 
 function log(s, args) {
-    // console.log(s, args)
+    //console.log(s, args);
 }
 
 /***
@@ -30,36 +24,35 @@ class VideoTileSource extends RasterTileSource implements Source {
     type: 'video-tiled';
 
     player: VideoCollectionPlayer;
-    
     onRender: Function;
-
     needsRender: Boolean;
 
     constructor(id: string, options: VideoTiledSourceSpecification, dispatcher: Dispatcher, eventedParent: Evented) {
         super(id, options, dispatcher, eventedParent);
 
+        this.needsRender = false;
         this.type = 'video-tiled';
 
-        this.onRender = time => {
-            this.needsRender = true
-            this.fire(new Event('repaint'))
-            this.map.triggerRepaint()
-        }
+        this.onRender = () => {
+            this.needsRender = true;
+            this.map.triggerRepaint();
+        };
 
         this.getVideos = () => {
-            let tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles)
-            return tiles.filter(t => t.video).map(t => t.video)
-        }
+            const tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles);
+            return tiles.filter(t => t.video).map(t => t.video);
+        };
 
         this.onVideoError = () => {
-            this.map.style.sourceCaches[this.id].reload()
-        }
+            this.map.style.sourceCaches[this.id].reload();
+        };
 
         this.player = new VideoCollectionPlayer(this.onRender, this.getVideos, this.onVideoError);
-
+        
         extend(this, pick(options, ['tileSize', 'playbackRate']));
 
-        this._options = extend({ type: 'video-tiled' }, options);
+        this._options = extend({type: 'video-tiled'}, options);
+
         extend(this, pick(options, ['url', 'scheme']));
     }
 
@@ -71,26 +64,26 @@ class VideoTileSource extends RasterTileSource implements Source {
 
             if (tile.aborted) {
                 tile.state = 'unloaded';
-                log('unloaded')
+                log('unloaded');
                 callback(null);
             } else if (err) {
                 tile.state = 'errored';
-                log('errored')
+                log('errored');
                 callback(err);
             } else {
                 tile.state = 'loading';
-                
+
                 // add video to the player, add tile once (if) video is ready to play
                 this.player.addVideo(video, video => {
-                    log('adding video tile')
-                    this.addTile(tile, video, callback)
+                    log('adding video tile');
+                    this.addTile(tile, video, callback);
                 });
             }
-        }
+        };
 
         tile.request = getVideo([this.map._requestManager.transformRequest(url, ResourceType.Tile).url], onLoaded);
     }
-    
+
     addTile(tile: Tile, video: HTMLVideoElement, callback: Callback<void>) {
         tile.video = video;
 
@@ -105,49 +98,39 @@ class VideoTileSource extends RasterTileSource implements Source {
         const gl = context.gl;
 
         // TODO: in the future use WebGL video extention: https://www.khronos.org/registry/webgl/extensions/proposals/WEBGL_video_texture/
-        tile.texture = new Texture(context, video, gl.RGBA, { useMipmap: false });
+        tile.texture = new Texture(context, video, gl.RGBA, {useMipmap: false});
         tile.texture.bind(gl.LINEAR, gl.CLAMP_TO_EDGE);
-
-        let tileSource = this;
-
-        this.on('repaint', () => {
-            // log('repaint')
-            tile.texture.update(video, { useMipmap: false })
-
-            this.needsRender = false;
-        })
-    
-        // if (context.extTextureFilterAnisotropic) {
-        //     gl.texParameterf(gl.TEXTURE_2D, context.extTextureFilterAnisotropic.TEXTURE_MAX_ANISOTROPY_EXT, context.extTextureFilterAnisotropicMax);
-        // }
-
         tile.state = 'loaded';
         cacheEntryPossiblyAdded(this.dispatcher);
         callback(null);
 
-        if(tile.video) {
-            this.player.addVideo(tile.video)
+        if (tile.video) {
+            // this.player.addVideo(tile.video);
         }
     }
 
     unloadTile(tile: Tile, callback: Callback<void>) {
-        RasterTileSource.prototype.unloadTile.call(this, tile, callback)
+        RasterTileSource.prototype.unloadTile.call(this, tile, callback);
 
-        log('unload tile')
+        log('unload tile');
 
-
-        if(tile.video) {
-            log('unload tile with video')
-            this.player.removeVideo(tile.video)
+        if (tile.video) {
+            log('unload tile with video');
+            this.player.removeVideo(tile.video);
         }
     }
 
     prepare() {
-    }    
+        if (this.needsRender) {
+            const tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles);
+            this.needsRender = false;
+            return tiles.filter(t => t.video).forEach(t => t.texture.update(t.video, {useMipmap: false}));
+        }
+    }
 
     hasTransition() {
-        return this.needsRender
+        return false;
     }
-};
+}
 
 export default VideoTileSource;
