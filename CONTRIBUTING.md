@@ -74,8 +74,8 @@ Install [development tools for Windows](https://stackoverflow.com/questions/2324
 
 ```
 npm install --global --production windows-build-tools
-npm config set msvs_version 2015 –global
-npm config set python python2.7
+npm config set msvs_version 2017 –global
+npm config set python C:\Users\<username>\.windows-build-tools\python27\python.exe 
 ```
 
 Make sure [Windows uses bash](https://stackoverflow.com/questions/23243353/how-to-set-shell-for-npm-run-scripts-in-windows) for npm commands:

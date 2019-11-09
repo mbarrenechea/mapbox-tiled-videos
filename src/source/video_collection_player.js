@@ -103,20 +103,20 @@ class VideoCollectionPlayer {
         this.playing = false;
     }
 
-    _onCanPlayThrouth(video, onVideoReady) {
-        const onCanPlayThrouthHandler = e => {
+    _onCanPlayThrough(video, onVideoReady) {
+        const onCanPlayThroughHandler = e => {
             const video = e.target;
 
             log('oncanplaythrough');
 
-            video.removeEventListener('canplaythrough', video.onCanPlayThrouthHandler);
+            video.removeEventListener('canplaythrough', video.onCanPlayThroughHandler);
 
             if (this.videos.includes(video)) {
                 return; // already processed
             }
 
             video.onerror = e => {
-                log('Video error: ', e);
+                log('video error: ', e);
             };
 
             video.width = 512;
@@ -130,6 +130,7 @@ class VideoCollectionPlayer {
             log(`duration: ${video.duration}`);
 
             if (onVideoReady) {
+                log('video ready', video)
                 onVideoReady(video);
             }
 
@@ -140,21 +141,23 @@ class VideoCollectionPlayer {
             }
         };
 
-        video.onCanPlayThrouthHandler = onCanPlayThrouthHandler;
+        video.onCanPlayThroughHandler = onCanPlayThroughHandler;
 
-        return onCanPlayThrouthHandler;
+        return onCanPlayThroughHandler;
     }
         
     addVideo(video: HTMLVideoElement, onVideoReady: Function) {
         video.loop = false;
         video.autoplay = false;
 
-        if (video.onCanPlayThrouthHandler) {
-            video.onCanPlayThrouthHandler({target: video});
+        console.log('add: ', video)
+
+        if (video.onCanPlayThroughHandler) {
+            video.onCanPlayThroughHandler({target: video});
         } else {
             // use canplaythrough here to handle video load event
             // TODO: find a better way to handle this
-            video.addEventListener('canplaythrough', this._onCanPlayThrouth(video, onVideoReady));
+            video.addEventListener('canplaythrough', this._onCanPlayThrough(video, onVideoReady));
         }
 
         // this.refresh();
@@ -167,7 +170,7 @@ class VideoCollectionPlayer {
     }
 
     removeVideo(video) {
-        log('remove video');
+        log('video removed', video);
         this._unsubscribeEvents(video);
 
         // remove video
@@ -243,12 +246,8 @@ class VideoCollectionPlayer {
         Promise.all(this.videos.map(v => {
             return new Promise((resolve, reject) => {
                 // check if video is being seeked already
-                if (player.seekingVideos.findIndex(o => o.video === v) !== -1) {
-                    console.log('BUG');
-                    // this is going to skip time steps
-                } else {
+                if (player.seekingVideos.findIndex(o => o.video === v) === -1) {
                     const t = this.incrementTime(currentTime, 0, player.currentTimeMargin, player.duration);
-                    // console.log('video time set: ', t)
 
                     player.seekingVideos.push({video: v, time: Date.now(), seekTo: t});
                     v.currentTime = t; // this triggers seeked event
@@ -280,7 +279,6 @@ class VideoCollectionPlayer {
         if (index > -1) {
             const v = this.seekingVideos[index];
             const elapsed = Date.now() - v.time;
-            // console.log('removed, elapsed ' + index + ': ' + elapsed + ' ms')
 
             this.seekingVideos.splice(index, 1);
         }
