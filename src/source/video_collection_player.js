@@ -150,6 +150,10 @@ class VideoCollectionPlayer {
         video.loop = false;
         video.autoplay = false;
 
+        video.addEventListener('onerror', () => {
+            console.error('Video ERROR')
+        })
+
         if (video.onCanPlayThroughHandler) {
             video.onCanPlayThroughHandler({target: video});
         } else {

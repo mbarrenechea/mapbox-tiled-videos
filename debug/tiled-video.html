@@ -39,29 +39,19 @@
 <script src="access_token_generated.js"></script>
 
 <script>
-// let tilesPath = "http://localhost:9966/media/{z}/{x}/{y}.webm"
-let tilesPath = "https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/{z}/{x}/{y}.webm"
 
 var videoStyle = {
     "version": 8,
     "sources": {
         "source1": {
-            "type": "video-tiled",
-            "tiles": [ tilesPath ],
+            type: "video-tiled",
+            tiles: [ "https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/{z}/{x}/{y}.webm" ],
+            scheme: "xyz",
             tileSize: 256,
-            playbackRate: 1,
             minzoom: 12,
             maxzoom: 13,
-            scheme: "xyz",
-            tileFilter: {
-                zoom: 12,
-                tiles: [
-                    [2115, 1354],
-                    [2115, 1355],
-                    [2116, 1354],
-                    [2116, 1355],
-                ]
-            }
+            playbackRate: 1,
+            geometryFilter: 'https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/geometry-filter.geojson'
         },
         "satellite": {
             "type": "raster",

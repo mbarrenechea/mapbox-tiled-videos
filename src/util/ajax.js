@@ -334,12 +334,18 @@ export const getVideo = function(urls: Array<string>, callback: Callback<HTMLVid
     video.onloadstart = function() {
         callback(null, video);
     };
+
     for (let i = 0; i < urls.length; i++) {
         const s: HTMLSourceElement = window.document.createElement('source');
         if (!sameOrigin(urls[i])) {
             video.crossOrigin = 'Anonymous';
         }
         s.src = urls[i];
+
+        s.onerror = () => {
+            callback('Error during video load', video)
+        }
+
         video.appendChild(s);
     }
     return {cancel: () => {}};

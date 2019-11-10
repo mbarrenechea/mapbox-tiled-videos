@@ -300,9 +300,9 @@
       "default": 1,
       "doc": "Playback rate for video tiles."
     },
-    "geometry": {
+    "geometryFilter": {
       "type": "*",
-      "doc": "Geometry to check if tiles need to be loaded."
+      "doc": "Geometry to be used to filter tiles when video is non-global. GeoJSON or string (URL to GeoJSON)."
     },
     "tileFilter": {
       "type": "*",
