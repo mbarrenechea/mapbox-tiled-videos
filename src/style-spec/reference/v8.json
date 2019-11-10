@@ -300,6 +300,14 @@
       "default": 1,
       "doc": "Playback rate for video tiles."
     },
+    "geometry": {
+      "type": "*",
+      "doc": "Geometry to check if tiles need to be loaded."
+    },
+    "tileFilter": {
+      "type": "*",
+      "doc": "The list of tiles at specific zoom level used as a test to skip fetching video tiles."
+    },
     "tileSize": {
       "type": "number",
       "default": 512,

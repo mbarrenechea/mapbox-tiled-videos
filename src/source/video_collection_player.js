@@ -150,8 +150,6 @@ class VideoCollectionPlayer {
         video.loop = false;
         video.autoplay = false;
 
-        console.log('add: ', video)
-
         if (video.onCanPlayThroughHandler) {
             video.onCanPlayThroughHandler({target: video});
         } else {

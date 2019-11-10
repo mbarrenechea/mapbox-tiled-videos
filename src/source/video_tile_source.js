@@ -4,6 +4,8 @@ import {extend, pick} from '../util/util';
 import {getVideo, ResourceType} from '../util/ajax';
 import Texture from '../render/texture';
 import {Evented} from '../util/evented';
+import Point from '@mapbox/point-geometry';
+import {polygonIntersectsBox} from '../util/intersection_tests';
 import {cacheEntryPossiblyAdded} from '../util/tile_request_cache';
 import type Dispatcher from '../util/dispatcher';
 import type Tile from './tile';
@@ -14,7 +16,7 @@ import RasterTileSource from './raster_tile_source';
 import VideoCollectionPlayer from './video_collection_player';
 
 function log(s, args) {
-    //console.log(s, args);
+    // console.log(s, args);
 }
 
 /***
@@ -26,12 +28,20 @@ class VideoTileSource extends RasterTileSource implements Source {
     player: VideoCollectionPlayer;
     onRender: Function;
     needsRender: Boolean;
+    tileFilter: Object;
+    geometry: Object;
+    geometryRing: Object;
+    playbackRate: Number;
 
     constructor(id: string, options: VideoTiledSourceSpecification, dispatcher: Dispatcher, eventedParent: Evented) {
         super(id, options, dispatcher, eventedParent);
 
         this.needsRender = false;
         this.type = 'video-tiled';
+        this.tileFilter = null;
+        this.geometry = null;
+        this.geometryRing = null;
+        this.playbackRate = 0;
 
         this.onRender = () => {
             this.needsRender = true;
@@ -49,15 +59,37 @@ class VideoTileSource extends RasterTileSource implements Source {
 
         this.player = new VideoCollectionPlayer(this.onRender, this.getVideos, this.onVideoError);
         
-        extend(this, pick(options, ['tileSize', 'playbackRate']));
+        extend(this, pick(options, ['tileSize', 'playbackRate', 'tileFilter', 'geometry']));
 
         this._options = extend({type: 'video-tiled'}, options);
 
         extend(this, pick(options, ['url', 'scheme']));
+
+        if(this.geometry) {
+            this.geometryRing = this.geometry.coordinates[0].map(c => new Point(c[0], c[1]))
+        }
+
+        if(this.playbackRate) {
+            this.player.playbackRate = this.playbackRate
+        }
     }
 
     loadTile(tile: Tile, callback: Callback<void>) {
         const url = this.map._requestManager.normalizeTileURL(tile.tileID.canonical.url(this.tiles, this.scheme), this.url, this.tileSize);
+
+        // do not load tile if its not covered by root tiles, when tileFilter if defined
+        if(this.tileFilter && !this.filterTile(tile)) {
+            tile.state = 'errored';
+            return;
+        }
+
+        // do not load tiles if they are not covered by geometry, when geometry is defined
+        if(this.geometry && !this.tileIntersectsWithGeometry(tile)) {
+            tile.state = 'errored';
+            return
+        }
+
+        log('Tile added: ' + tile.tileID.canonical.x + ', ' + tile.tileID.canonical.y)
 
         const onLoaded = (err, video) => {
             delete tile.request;
@@ -84,6 +116,42 @@ class VideoTileSource extends RasterTileSource implements Source {
         tile.request = getVideo([this.map._requestManager.transformRequest(url, ResourceType.Tile).url], onLoaded);
     }
 
+    /***
+     * Checks if tile is covered by tile filter.
+     */
+    filterTile(tile) {
+        let transform = (coord) => Math.floor(coord / Math.pow(2, tile.tileID.canonical.z - this.tileFilter.zoom));
+
+        let x = transform(tile.tileID.canonical.x)
+        let y = transform(tile.tileID.canonical.y)
+
+        return this.tileFilter.tiles.filter(t => t[0] == x && t[1] == y).length === 1
+    }
+
+    getTileBounds(tx, ty, z) {
+        let xmin = tx / Math.pow(2, z) * 360 - 180
+        let xmax = (tx + 1) / Math.pow(2, z) * 360 - 180
+        
+        var n = Math.PI - 2 * Math.PI * ty / Math.pow(2, z)
+        var ymin = Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))) * 180 / Math.PI
+
+        var n = Math.PI - 2 * Math.PI * (ty + 1) / Math.pow(2, z)
+        var ymax = Math.atan(0.5 * (Math.exp(n) - Math.exp(-n))) * 180 / Math.PI
+
+        return [xmin, xmax, ymin, ymax]
+    }
+    
+     /***
+     * Checks if tile is covered by geometry.
+     */
+    tileIntersectsWithGeometry(tile) {
+        let t = tile.tileID.canonical
+        let [xmin, xmax, ymin, ymax] = this.getTileBounds(t.x, t.y, t.z)
+        let check = polygonIntersectsBox(this.geometryRing, xmin, ymax, xmax, ymin)
+
+        return check
+    }
+
     addTile(tile: Tile, video: HTMLVideoElement, callback: Callback<void>) {
         tile.video = video;
 
@@ -101,6 +169,7 @@ class VideoTileSource extends RasterTileSource implements Source {
         tile.texture = new Texture(context, video, gl.RGBA, {useMipmap: false});
         tile.texture.bind(gl.LINEAR, gl.CLAMP_TO_EDGE);
         tile.state = 'loaded';
+        log('Tile loaded: ' + tile.tileID.canonical.x + ', ' + tile.tileID.canonical.y)
         cacheEntryPossiblyAdded(this.dispatcher);
         callback(null);
 

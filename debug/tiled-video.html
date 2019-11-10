@@ -16,7 +16,9 @@
     </style>
 </head>
 
+<!-- NOTE: initialize map after the body is loaded, otherwise initial video fetching crashes badly -->
 <body onload="onLoad()">
+
 <div id="map"></div>
 
 <div id="panel" class="pin-bottom pt36 bg-white z100 ">
@@ -29,13 +31,6 @@
 
         <input id="boundscheckbox" checked type='checkbox' onclick="toggleShowBounds()"/>
         <div id="boundscheckboxlabel">Show bounds</div>
-
-
-        <!-- <div class="px24 py24">
-        <div class="txt-l mb12">Modal title</div>
-        <div class="txt-m">
-          I am some modal body content.
-        </div> -->
       </div>
     </div>
 </div>
@@ -53,12 +48,20 @@ var videoStyle = {
         "source1": {
             "type": "video-tiled",
             "tiles": [ tilesPath ],
-            tileSize: 512,
-            playbackRate: 0.2,
+            tileSize: 256,
+            playbackRate: 1,
             minzoom: 12,
             maxzoom: 13,
             scheme: "xyz",
-            geometry: []
+            tileFilter: {
+                zoom: 12,
+                tiles: [
+                    [2115, 1354],
+                    [2115, 1355],
+                    [2116, 1354],
+                    [2116, 1355],
+                ]
+            }
         },
         "satellite": {
             "type": "raster",
@@ -128,7 +131,7 @@ function togglePlayback() {
     button.innerText = playing ? 'Pause' : 'Play'
 
     if(playing) {
-        let dt = 50 // timer in ms
+        let dt = 100 // timer in ms
         let step = 0.2 // step to seek for the next frame, depends on video FPS
         getPlayer().play(dt, step)
     } else {
