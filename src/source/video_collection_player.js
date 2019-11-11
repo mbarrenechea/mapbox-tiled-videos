@@ -135,9 +135,8 @@ class VideoCollectionPlayer {
             }
 
             if (video.currentTime !== this.currentTime) {
-                this._syncVideos();
-
-                log('Syncing newly added video to current time ...');
+                // this._syncVideos();
+                // log('Syncing newly added video to current time ...');
             }
         };
 
@@ -149,10 +148,6 @@ class VideoCollectionPlayer {
     addVideo(video: HTMLVideoElement, onVideoReady: Function) {
         video.loop = false;
         video.autoplay = false;
-
-        video.addEventListener('onerror', () => {
-            console.error('Video ERROR')
-        })
 
         if (video.onCanPlayThroughHandler) {
             video.onCanPlayThroughHandler({target: video});

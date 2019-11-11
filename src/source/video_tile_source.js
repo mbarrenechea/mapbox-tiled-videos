@@ -27,24 +27,21 @@ class VideoTileSource extends RasterTileSource implements Source {
 
     player: VideoCollectionPlayer;
     onRender: Function;
-    needsRender: Boolean;
     geometryFilter: GeoJSON | string;
     playbackRate: Number;
-    _loaded: boolean;
 
     constructor(id: string, options: VideoTiledSourceSpecification, dispatcher: Dispatcher, eventedParent: Evented) {
         super(id, options, dispatcher, eventedParent);
 
-        this.needsRender = false;
         this.type = 'video-tiled';
         this.tiles = [];
         this.geometryFilter = null;
         this.initialized = false;
         this.playbackRate = 0;
-        this._loaded = false;
 
         this.onRender = () => {
-            this.needsRender = true;
+            let tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles);
+            tiles.map(tile => tile.needsRender = true)
             this.map.triggerRepaint();
         };
 
@@ -71,7 +68,6 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
 
     load() {
-        this._loaded = false
         this.fire(new Event('dataloading', {dataType: 'source'}));
 
         if(!this.geometryFilter) {
@@ -85,8 +81,6 @@ class VideoTileSource extends RasterTileSource implements Source {
 
         let handleLoaded = geojson => {
             this.geometryFilter = geojson.coordinates[0].map(c => new Point(c[0], c[1]))
-
-            this._loaded = true
 
             // let the SourceCache know its ok to start requesting tiles.
             this.fire(new Event('data', {dataType: 'source', sourceDataType: 'metadata'}));
@@ -102,19 +96,11 @@ class VideoTileSource extends RasterTileSource implements Source {
                 .then(response => response.json())
                 .then(geojson => handleLoaded(geojson))
         } else {
+            // load GeoJSON directly
             handleLoaded(this.geometryFilter)
         }
     }
 
-    loaded(): boolean {
-        return this._loaded;
-    }
-
-    onAdd(map: Map) {
-        this.map = map;
-        this.load();
-    }
-    
     loadTile(tile: Tile, callback: Callback<void>) {
         const url = this.map._requestManager.normalizeTileURL(tile.tileID.canonical.url(this.tiles, this.scheme), this.url, this.tileSize);
 
@@ -219,10 +205,18 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
 
     prepare() {
-        if (this.needsRender) {
-            const tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles);
-            this.needsRender = false;
-            return tiles.filter(t => t.video).forEach(t => t.texture.update(t.video, {useMipmap: false}));
+        let tilesToRender = Object.values(this.map.style.sourceCaches[this.id]._tiles).filter(tile => tile.video && tile.needsRender)
+
+        if (tilesToRender.length > 0) {
+            return tilesToRender.forEach(tile => { 
+                tile.texture.update(tile.video, {useMipmap: false})
+                tile.needsRender = false
+            });
+        }
+
+        if(this.getVideos().length !== this.player.videos.length) {
+            this.player.refresh()
+            this.onRender()     
         }
     }
 
