@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapbox GL JS debug page</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="../dist/mapbox-gl.css" />
+    <link href="https://www.mapbox.com/base/latest/base.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+        #playbutton { top: 30px; left: 10px; }
+        #panel { margin-left: 5px; margin-bottom: 35px; width: 500px; height: 80px; background-color: white; opacity: 0.9; }
+        #boundscheckbox { position: absolute; top: 40px; left: 80px; }
+        #boundscheckboxlabel { position: absolute; top: 40px; left: 100px; }
+        #timelabel {
+            position: absolute;
+            top: 1%;
+            left: 1%;
+            z-index: 100;
+            text-shadow: 1px 1px 2px #000000e0, 0 0 15px #f8f8f8;
+            font-size: 16px;
+            color: seashell;
+        }
+    </style>
+</head>
+
+<!-- NOTE: initialize map after the body is loaded, otherwise initial video fetching crashes badly -->
+<body onload="onLoad()">
+
+<div id="map"></div>
+
+<div id="timelabel"></div>
+
+<div id="panel" class="pin-bottom pt36 bg-white z100 ">
+    <div class="bg-white round relative w600">
+        <div class="pin-top pad1 z100 col12 bg-white">
+            <input class="timeslider col12 fr" id="timeslider" title="slider" type="range" min="0" max="11.0" step="0.1" value="0" />
+        </div>
+        
+        <div id="playbutton" class="button z100" onclick="togglePlayback()">Play</div>
+
+        <input id="boundscheckbox" checked type='checkbox' onclick="toggleShowBounds()"/>
+        <div id="boundscheckboxlabel">Show bounds</div>
+      </div>
+    </div>
+</div>
+
+<script src="../dist/mapbox-gl-dev.js"></script>
+<script src="access_token_generated.js"></script>
+<script type="text/javascript" src="stats.min.js"></script>
+
+<script>
+
+var videoStyle = {
+    "version": 8,
+    "sources": {
+        "source1": {
+            type: "video-tiled",
+            tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video/{z}/{x}/{y}.webm" ],
+            // tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video-256/{z}/{x}/{y}.webm" ],
+            // tiles: [ "http://localhost:9966/media/dam-Merowe-video-yuv420p/{z}/{x}/{y}.webm" ],
+            scheme: "xyz",
+            tileSize: 512,
+            // tileSize: 256,
+            minzoom: 0,
+            maxzoom: 12,
+            playbackRate: 1,
+            // geometryFilter: 'https://storage.googleapis.com/deltares-video-map/dam-Merowe-video/geometry.geojson'
+            geometryFilter: 'http://localhost:9966/media/dam-Merowe-video/geometry.geojson'
+        },
+        "filter": {
+            "type": "geojson",
+            "data": "http://localhost:9966/media/dam-Merowe-video/geometry.geojson"
+        },
+        "satellite": {
+            "type": "raster",
+            "url": "mapbox://mapbox.satellite",
+            "tileSize": 512
+        }
+    },
+    "layers": [{
+        "id": "background",
+        "type": "background",
+        "paint": {
+            "background-color": "rgb(4,7,14)"
+        }
+    }, {
+        "id": "satellite",
+        "type": "raster",
+        "paint": {
+            "raster-saturation": -1,
+            "raster-brightness-max": 0.6
+        },
+        "source": "satellite"
+    }, {
+        "id": "layer1",
+        "type": "raster",
+        "source": "source1"
+    }
+    // , {
+    //     "id": "filter",
+    //     "type": "line",
+    //     "source": "filter"
+    // }
+    ]
+};
+
+let map = null
+
+function onLoad() {
+    map = window.map = new mapboxgl.Map({
+        container: 'map',
+        pitch: 42, // pitch in degrees
+        bearing: 26, // bearing in degrees    
+        zoom: 12,
+        center: [35.8824, 14.4041],
+        style: videoStyle,
+        hash: false
+    });
+
+    map.addControl(new mapboxgl.NavigationControl());
+
+    map.showTileBoundaries = true;
+
+    let slider = document.getElementById('timeslider')
+
+    let timelabel = document.getElementById('timelabel')
+
+let times = [
+  "2013-04-05",
+  "2013-06-13",
+  "2013-07-15",
+  "2013-09-01",
+  "2013-09-17",
+  "2013-10-03",
+  "2013-10-19",
+  "2013-11-04",
+  "2013-11-20",
+  "2013-12-06",
+  "2013-12-22",
+  "2014-01-07",
+  "2014-01-23",
+  "2014-02-08",
+  "2014-03-12",
+  "2014-03-28",
+  "2014-05-15",
+  "2014-05-31",
+  "2014-06-16",
+  "2014-07-02",
+  "2014-08-03",
+  "2014-08-19",
+  "2014-09-04",
+  "2014-09-20",
+  "2014-10-06",
+  "2014-10-22",
+  "2014-11-07",
+  "2014-11-23",
+  "2014-12-09",
+  "2014-12-25",
+  "2015-02-27",
+  "2015-03-15",
+  "2015-05-18",
+  "2015-06-03",
+  "2015-06-19",
+  "2015-07-05",
+  "2015-08-06",
+  "2015-08-22",
+  "2015-09-07",
+  "2015-09-23",
+  "2015-10-09",
+  "2015-10-25",
+  "2015-11-10",
+  "2015-11-26",
+  "2015-12-12",
+  "2015-12-28",
+  "2016-01-13",
+  "2016-01-29",
+  "2016-02-14",
+  "2016-03-01",
+  "2016-04-02",
+  "2016-04-18",
+  "2016-05-20",
+  "2016-07-07",
+  "2016-07-23",
+  "2016-08-24",
+  "2016-09-25",
+  "2016-10-11",
+  "2016-11-12",
+  "2016-11-28",
+  "2016-12-14",
+  "2016-12-30",
+  "2017-01-15",
+  "2017-01-31",
+  "2017-02-16",
+  "2017-03-04",
+  "2017-04-05",
+  "2017-05-07",
+  "2017-05-23",
+  "2017-06-08",
+  "2017-06-24",
+  "2017-07-26",
+  "2017-08-27",
+  "2017-09-12",
+  "2017-09-28",
+  "2017-10-14",
+  "2017-10-30",
+  "2017-11-15",
+  "2017-12-01",
+  "2017-12-17",
+  "2018-01-02",
+  "2018-01-18",
+  "2018-02-03",
+  "2018-02-19",
+  "2018-03-07",
+  "2018-03-23",
+  "2018-04-08",
+  "2018-07-13",
+  "2018-08-30",
+  "2018-09-15",
+  "2018-10-01",
+  "2018-10-17",
+  "2018-11-02",
+  "2018-11-18",
+  "2018-12-04",
+  "2018-12-20",
+  "2019-01-05",
+  "2019-01-21",
+  "2019-02-06",
+  "2019-02-22",
+  "2019-03-10",
+  "2019-04-27",
+  "2019-05-13",
+  "2019-06-14",
+  "2019-06-30",
+  "2019-07-16",
+  "2019-08-01",
+  "2019-09-02",
+  "2019-09-18",
+  "2019-10-04",
+  "2019-10-20",
+  "2019-11-05",
+  "2019-11-21"
+]
+
+
+    map.on('style.load', () => {
+        let player = getPlayer()
+        
+        player.onTimeChanged = t => {
+            slider.value = t
+
+            timelabel.textContent = 'Time: ' + times[Math.floor(t * 10)] + ', visible videos: ' + player.videos.length
+        }
+
+        var stats = new Stats();
+        stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
+        stats.dom.style.top = '50px';
+        stats.dom.style.left = '10px';
+        document.body.appendChild(stats.dom);
+        
+        player.onBeforeVideoSync = () => {
+            stats.begin()
+        }
+
+        player.onAfterVideoSync = () => {
+            stats.end()
+        }
+    })
+
+
+    slider.addEventListener('input', function() {
+        let currentTime = parseFloat(this.value)
+
+        getPlayer().setCurrentTime(currentTime)
+
+        
+    });
+}
+
+let playing = false;
+
+function getPlayer() {
+    return map.getSource('source1').player
+}
+
+function togglePlayback() {
+    playing = !playing;
+
+    let button = document.getElementById('playbutton')
+    button.innerText = playing ? 'Pause' : 'Play'
+
+    if(playing) {
+        let maxFps = 240
+        let step = 0.1 // step to seek for the next frame, depends on video FPS
+        getPlayer().play(maxFps, step)
+    } else {
+        getPlayer().pause()
+    }
+}
+
+function toggleShowBounds() {
+    map.showTileBoundaries = !map.showTileBoundaries
+}
+
+</script>
+</body>
+</html>

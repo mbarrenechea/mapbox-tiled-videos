@@ -3,7 +3,7 @@
 import throttle from '../util/throttle';
 
 function log(s, args) {
-    // console.log(s, args)
+    //  console.log(s, args)
 }
 
 /***
@@ -17,17 +17,20 @@ class VideoCollectionPlayer {
     duration: number;
 
     onTimeChanged: Function;
+    onBeforeVideoSync: Function;
+    onAfterVideoSync: Function;
     onRender: Function;
     onVideoError: Function;
     playTimer: int;
 
-    videos: Array<HTMLVideoElement>;
-    seekingVideos: Array<any>;
+    videos: Array < HTMLVideoElement > ;
+    seekingVideos: Array < any > ;
     currentTimeChanged: boolean;
 
     constructor(onRender: Function, getVideos: Function, onVideoError: Function) {
-        this.onTimeChanged = () => {
-        };
+        this.onTimeChanged = () => {}; // all videos are synced
+        this.onBeforeVideoSync = () => {};
+        this.onAfterVideoSync = () => {}; 
         this.currentTimeMargin = 0.01; // video seeking is a mess in web browsers
         this.playbackRate = 1;
         this.playing = false;
@@ -41,11 +44,51 @@ class VideoCollectionPlayer {
         this.videos = [];
         this.seekingVideos = [];
 
-        this._syncVideos = throttle(this._syncVideosUnthrottled.bind(this), 50);
-        this._refreshVideos = throttle(this.onVideoError.bind(this), 250);
+        this._syncVideos = throttle(this._syncVideosUnthrottled.bind(this), 30);
+        this._refreshVideos = throttle(this.onVideoError.bind(this), 1000);
     }
 
-    play(dt, step) {
+    onHasTransition() {
+        if(!this.playing) {
+            return false
+        }
+
+        if(!this.busy) {
+
+            if(this.playing) {
+                if(1000 / (Date.now() - this.elapsedStart) > this.maxFps) {
+                    return true; // no need to update, maxFps reached
+                }
+
+                this.elapsedStart = Date.now()
+
+                let currentTime = this.currentTime + this.step;
+
+                if (currentTime > this.duration) {
+                    currentTime = 0;
+                }
+
+                // this.setCurrentTime(currentTime)
+                this.setCurrentTimeUnthrottled(currentTime);
+            }
+        }
+
+        return false
+    }
+
+    play(maxFps, step) {
+        if (this.playing) {
+            return;
+        }
+
+        this.maxFps = maxFps;
+        this.step = step;
+        this.playing = true;
+
+        this.onRender()
+    }
+
+    play_(dt, step) {
         if (this.playing) {
             return;
         }
@@ -58,7 +101,7 @@ class VideoCollectionPlayer {
 
         log('dt: ', dt);
 
-        var updateFrame = () => {
+        const updateFrame = () => {
             if (!player.playing || player.busy) {
                 return;
             }
@@ -144,13 +187,15 @@ class VideoCollectionPlayer {
 
         return onCanPlayThroughHandler;
     }
-        
+
     addVideo(video: HTMLVideoElement, onVideoReady: Function) {
         video.loop = false;
         video.autoplay = false;
 
         if (video.onCanPlayThroughHandler) {
-            video.onCanPlayThroughHandler({target: video});
+            video.onCanPlayThroughHandler({
+                target: video
+            });
         } else {
             // use canplaythrough here to handle video load event
             // TODO: find a better way to handle this
@@ -208,12 +253,12 @@ class VideoCollectionPlayer {
         }
 
         this.seekingVideos = [];
-        this.busy = false;
+        // this.busy = false;
     }
 
     setCurrentTimeUnthrottled(currentTime) {
         if (this.busy && !this.seekingVideos.length) {
-            this.busy = false;
+            // this.busy = false;
         }
 
         if (this.busy) {
@@ -222,6 +267,8 @@ class VideoCollectionPlayer {
         }
 
         this.busy = true;
+
+        this.onBeforeVideoSync();
 
         this.refresh();
 
@@ -246,7 +293,11 @@ class VideoCollectionPlayer {
                 if (player.seekingVideos.findIndex(o => o.video === v) === -1) {
                     const t = this.incrementTime(currentTime, 0, player.currentTimeMargin, player.duration);
 
-                    player.seekingVideos.push({video: v, time: Date.now(), seekTo: t});
+                    player.seekingVideos.push({
+                        video: v,
+                        time: Date.now(),
+                        seekTo: t
+                    });
                     v.currentTime = t; // this triggers seeked event
                 }
                 resolve();
@@ -274,8 +325,8 @@ class VideoCollectionPlayer {
 
         const index = this.seekingVideos.findIndex(v => v.video === video);
         if (index > -1) {
-            const v = this.seekingVideos[index];
-            const elapsed = Date.now() - v.time;
+            // const v = this.seekingVideos[index];
+            // const elapsed = Date.now() - v.time;
 
             this.seekingVideos.splice(index, 1);
         }
@@ -291,9 +342,9 @@ class VideoCollectionPlayer {
             const v = player.seekingVideos[index];
             const elapsed = Date.now() - v.time;
 
-            player.seekingVideos.splice(index, 1);
+            // console.log('seeked ' + index + ': ' + elapsed + ' ms')
 
-            // console.log('seeked ' + index + ': ' + elapsed + ' ms, currentTime: ' + v.video.currentTime)
+            player.seekingVideos.splice(index, 1);
 
             // if video time is broken - reload it!
             if (Math.abs(v.video.currentTime - v.seekTo) > player.currentTimeMargin) {
@@ -311,10 +362,12 @@ class VideoCollectionPlayer {
                 // console.log('seeked all videos, ' + player.seekingVideos.length)
                 player.onRender(player.currentTime);
                 player.currentTimeChanged = false;
-                player.busy = false;
+                // player.busy = false;
+
+                player.onRender()
 
                 // player.onTimeChanged(player.currentTime)
-                throttle(player.onTimeChanged(player.currentTime), 50);
+                throttle(player.onTimeChanged(player.currentTime), 250);
             }
         }
     }

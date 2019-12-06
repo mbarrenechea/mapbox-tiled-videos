@@ -205,13 +205,25 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
 
     prepare() {
+        let playing = this.getVideos().some(v => !v.paused)
+
+        if(playing) {
+           return
+        }
+
+        // manual playing
         let tilesToRender = Object.values(this.map.style.sourceCaches[this.id]._tiles).filter(tile => tile.video && tile.needsRender)
 
         if (tilesToRender.length > 0) {
-            return tilesToRender.forEach(tile => { 
+            tilesToRender.forEach(tile => { 
                 tile.texture.update(tile.video, {useMipmap: false})
                 tile.needsRender = false
             });
+
+            this.player.busy = false // done
+            this.player.onAfterVideoSync();
+
+            return
         }
 
         if(this.getVideos().length !== this.player.videos.length) {
@@ -221,7 +233,11 @@ class VideoTileSource extends RasterTileSource implements Source {
     }
 
     hasTransition() {
-        return false;
+        // console.log('hasTransition')
+        return this.player.onHasTransition()
+
+        // return this.getVideos().some(v => !v.paused)
+        // return false;
     }
 }
 
