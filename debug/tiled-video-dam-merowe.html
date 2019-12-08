@@ -35,7 +35,8 @@
 <div id="panel" class="pin-bottom pt36 bg-white z100 ">
     <div class="bg-white round relative w600">
         <div class="pin-top pad1 z100 col12 bg-white">
-            <input class="timeslider col12 fr" id="timeslider" title="slider" type="range" min="0" max="11.0" step="0.1" value="0" />
+            <!-- <input class="timeslider col12 fr" id="timeslider" title="slider" type="range" min="0" max="11.0" step="0.1" value="0" /> -->
+            <input class="timeslider col12 fr" id="timeslider" title="slider" type="range" min="0" max="1.0" step="0.1" value="0" />
         </div>
         
         <div id="playbutton" class="button z100" onclick="togglePlayback()">Play</div>
@@ -57,17 +58,17 @@ var videoStyle = {
     "sources": {
         "source1": {
             type: "video-tiled",
-            tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video/{z}/{x}/{y}.webm" ],
-            // tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video-256/{z}/{x}/{y}.webm" ],
-            // tiles: [ "http://localhost:9966/media/dam-Merowe-video-yuv420p/{z}/{x}/{y}.webm" ],
+            // tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video/{z}/{x}/{y}.webm" ], max: 11, center: [35.9824, 14.2541], zoom: 11, minzoom: 0, maxzoom: 12,
+            // tiles: [ "https://storage.googleapis.com/deltares-video-map/viirs-video/{z}/{x}/{y}.webm" ], max: 6.7, center: [0, 0], zoom: 0, minzoom: 0, maxzoom: 6,
+            tiles: [ "https://storage.googleapis.com/deltares-video-map/s1-ice-video/{z}/{x}/{y}.webm" ], max: 12.0, center: [-105.98, -73.71], zoom: 5, minzoom: 0, maxzoom: 9,
+            // tiles: [ "https://storage.googleapis.com/deltares-video-map/sdb-rgb-v3.3-video/{z}/{x}/{y}.webm" ], max: 1.6, center: [6.6579, 53.5825], zoom: 9.8, minzoom: 4, maxzoom: 13,
             scheme: "xyz",
             tileSize: 512,
             // tileSize: 256,
-            minzoom: 0,
-            maxzoom: 12,
             playbackRate: 1,
             // geometryFilter: 'https://storage.googleapis.com/deltares-video-map/dam-Merowe-video/geometry.geojson'
-            geometryFilter: 'http://localhost:9966/media/dam-Merowe-video/geometry.geojson'
+            // geometryFilter: 'http://localhost:9966/media/dam-Merowe-video/geometry.geojson'
+            geometryFilter: 'https://storage.googleapis.com/deltares-video-map/s1-ice-video/geometry.geojson'
         },
         "filter": {
             "type": "geojson",
@@ -76,7 +77,7 @@ var videoStyle = {
         "satellite": {
             "type": "raster",
             "url": "mapbox://mapbox.satellite",
-            "tileSize": 512
+            "tileSize": 256
         }
     },
     "layers": [{
@@ -85,7 +86,8 @@ var videoStyle = {
         "paint": {
             "background-color": "rgb(4,7,14)"
         }
-    }, {
+    }
+    , {
         "id": "satellite",
         "type": "raster",
         "paint": {
@@ -93,7 +95,8 @@ var videoStyle = {
             "raster-brightness-max": 0.6
         },
         "source": "satellite"
-    }, {
+    }
+    , {
         "id": "layer1",
         "type": "raster",
         "source": "source1"
@@ -101,6 +104,10 @@ var videoStyle = {
     // , {
     //     "id": "filter",
     //     "type": "line",
+    //     "paint": {
+    //     "line-color": "#888",
+    //     "line-width": 8
+    //     },
     //     "source": "filter"
     // }
     ]
@@ -111,19 +118,24 @@ let map = null
 function onLoad() {
     map = window.map = new mapboxgl.Map({
         container: 'map',
-        pitch: 42, // pitch in degrees
-        bearing: 26, // bearing in degrees    
-        zoom: 12,
-        center: [35.8824, 14.4041],
+        // pitch: 42, // pitch in degrees
+        // bearing: 26, // bearing in degrees    
+        zoom: videoStyle.sources.source1.zoom,
+        center: videoStyle.sources.source1.center,
         style: videoStyle,
         hash: false
     });
 
     map.addControl(new mapboxgl.NavigationControl());
+    map.addControl(new mapboxgl.ScaleControl(), 'bottom-right');
 
-    map.showTileBoundaries = true;
+    map.showTileBoundaries = false;
 
     let slider = document.getElementById('timeslider')
+
+    slider.max = videoStyle.sources.source1.max
+    console.log('MAX' + slider.max)
+
 
     let timelabel = document.getElementById('timelabel')
 
@@ -272,6 +284,7 @@ let times = [
     slider.addEventListener('input', function() {
         let currentTime = parseFloat(this.value)
 
+        console.log(currentTime)
         getPlayer().setCurrentTime(currentTime)
 
         
@@ -291,7 +304,7 @@ function togglePlayback() {
     button.innerText = playing ? 'Pause' : 'Play'
 
     if(playing) {
-        let maxFps = 240
+        let maxFps = 15
         let step = 0.1 // step to seek for the next frame, depends on video FPS
         getPlayer().play(maxFps, step)
     } else {
