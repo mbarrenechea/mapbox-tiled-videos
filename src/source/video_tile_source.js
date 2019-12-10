@@ -47,7 +47,19 @@ class VideoTileSource extends RasterTileSource implements Source {
 
         this.getVideos = () => {
             const tiles = Object.values(this.map.style.sourceCaches[this.id]._tiles);
+
             return tiles.filter(t => t.video).map(t => t.video);
+
+            /*
+            let maxZoom = Math.round(this.map.getZoom())
+
+            if(tiles.length > 0) {
+                let zooms = tiles.map(t => t.tileID.canonical.z)
+                maxZoom = Math.max(...zooms)
+            }
+            
+            return tiles.filter(t => t.video && t.tileID.canonical.z === maxZoom).map(t => t.video);
+            */
         };
 
         this.onVideoError = () => {
