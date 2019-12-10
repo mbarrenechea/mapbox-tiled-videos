@@ -58,9 +58,9 @@ var videoStyle = {
     "sources": {
         "source1": {
             type: "video-tiled",
-            // tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video/{z}/{x}/{y}.webm" ], max: 11, center: [35.9824, 14.2541], zoom: 11, minzoom: 0, maxzoom: 12,
+            tiles: [ "http://localhost:9966/media/dam-Merowe-v2-video/{z}/{x}/{y}.webm" ], max: 11, center: [35.9824, 14.2541], zoom: 11, minzoom: 0, maxzoom: 12,
             // tiles: [ "https://storage.googleapis.com/deltares-video-map/viirs-video/{z}/{x}/{y}.webm" ], max: 6.7, center: [0, 0], zoom: 0, minzoom: 0, maxzoom: 6,
-            tiles: [ "https://storage.googleapis.com/deltares-video-map/s1-ice-video/{z}/{x}/{y}.webm" ], max: 12.0, center: [-105.98, -73.71], zoom: 5, minzoom: 0, maxzoom: 9,
+            // tiles: [ "https://storage.googleapis.com/deltares-video-map/s1-ice-video/{z}/{x}/{y}.webm" ], max: 12.0, center: [-105.98, -73.71], zoom: 5, minzoom: 0, maxzoom: 9,
             // tiles: [ "https://storage.googleapis.com/deltares-video-map/sdb-rgb-v3.3-video/{z}/{x}/{y}.webm" ], max: 1.6, center: [6.6579, 53.5825], zoom: 9.8, minzoom: 4, maxzoom: 13,
             scheme: "xyz",
             tileSize: 512,
@@ -68,7 +68,7 @@ var videoStyle = {
             playbackRate: 1,
             // geometryFilter: 'https://storage.googleapis.com/deltares-video-map/dam-Merowe-video/geometry.geojson'
             // geometryFilter: 'http://localhost:9966/media/dam-Merowe-video/geometry.geojson'
-            geometryFilter: 'https://storage.googleapis.com/deltares-video-map/s1-ice-video/geometry.geojson'
+            // geometryFilter: 'https://storage.googleapis.com/deltares-video-map/s1-ice-video/geometry.geojson'
         },
         "filter": {
             "type": "geojson",
