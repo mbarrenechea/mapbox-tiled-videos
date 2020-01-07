@@ -26,7 +26,7 @@
         <div class="pin-top pad1 z100 col12 bg-white">
             <input class="timeslider col12 fr" id="timeslider" title="slider" type="range" min="0" max="8.08" step="0.2" value="0" />
         </div>
-        
+
         <div id="playbutton" class="button z100" onclick="togglePlayback()">Play</div>
 
         <input id="boundscheckbox" checked type='checkbox' onclick="toggleShowBounds()"/>
@@ -45,18 +45,23 @@ var videoStyle = {
     "sources": {
         "source1": {
             type: "video-tiled",
-            tiles: [ "https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/{z}/{x}/{y}.webm" ],
+            // tiles: [ "https://storage.googleapis.com/skydipper_materials/movie-tiles/MODIS/{z}/{x}/{y}.mp4" ],
+            tiles: [ "https://storage.googleapis.com/skydipper_materials/movie-tiles/EVI_TEST/{z}/{x}/{y}.mp4" ],
             scheme: "xyz",
             tileSize: 256,
-            minzoom: 12,
-            maxzoom: 13,
-            playbackRate: 1,
-            geometryFilter: 'https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/geometry-filter.geojson'
+            minzoom: 1,
+            maxzoom: 6,
+            playbackRate: 0.1,
+            // geometryFilter: 'https://storage.googleapis.com/deltares-video-map/mapbox-test/test1/geometry-filter.geojson'
         },
         "satellite": {
             "type": "raster",
             "url": "mapbox://mapbox.satellite",
             "tileSize": 512
+        },
+        "boundaries": {
+            "type": "geojson",
+            "data": "./countries.geojson"
         }
     },
     "layers": [{
@@ -73,6 +78,13 @@ var videoStyle = {
         "id": "layer1",
         "type": "raster",
         "source": "source1"
+    }, {
+        "id": "layer2",
+        "type": "line",
+        "source": "boundaries",
+        "paint": {
+            "line-color": "#00ffff"
+        }
     }]
 };
 
@@ -81,9 +93,9 @@ let map = null
 function onLoad() {
     map = window.map = new mapboxgl.Map({
         container: 'map',
-        pitch: 42, // pitch in degrees
-        bearing: 26, // bearing in degrees    
-        zoom: 12,
+        pitch: 0, // pitch in degrees
+        bearing: 0, // bearing in degrees
+        zoom: 1,
         center: [5.965525414162357, 51.86785661862126],
         style: videoStyle,
         hash: false

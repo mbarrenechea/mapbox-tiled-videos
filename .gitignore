@@ -3,6 +3,7 @@
 /dist/
 /docs/pages/dist/
 /docs/img/dist/
+.env
 *.es.js
 *.js.map
 node_modules
